@@ -53,6 +53,7 @@ export interface QuoteItem {
   details: string;
   quantity: number;
   unitPrice: number;
+  finishes?: string; // Optional field for finishes (acabamentos)
 }
 
 export interface Quotation {
@@ -64,6 +65,15 @@ export interface Quotation {
   totalValue: number;
   status: QuotationStatus;
   items: QuoteItem[];
+  clientPhone?: string;
+  clientDocument?: string;
+  deliveryType?: 'retirada' | 'entrega';
+  deliveryAddress?: string;
+  deliveryFee?: number;
+  urgencyLevel?: 'normal' | 'urgente' | 'super_urgente';
+  urgencyFee?: number;
+  productionDays?: number;
+  paymentMethod?: string;
 }
 
 export type InvoiceStatus = 'PAGO' | 'VENCIDO' | 'RASCUNHO';
@@ -138,6 +148,29 @@ export interface CanvasArt {
   thumbnail?: string;
   createdAt: string;
   userId: string;
+}
+
+export interface ProductFinish {
+  name: string;
+  price: number;
+  additionalDays: number;
+  conflictsWith?: string[];
+}
+
+export interface ProductSize {
+  name: string;
+  priceAdjustment: number;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  category: string;
+  basePrice: number;
+  baseProductionDays: number;
+  printColors?: string[];
+  sizes?: ProductSize[];
+  finishes?: ProductFinish[];
 }
 
 export interface AppState {

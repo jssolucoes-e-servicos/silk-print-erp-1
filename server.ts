@@ -23,6 +23,7 @@ function loadDB() {
   if (fs.existsSync(DB_FILE)) {
     try {
       const data = JSON.parse(fs.readFileSync(DB_FILE, "utf-8"));
+      let changed = false;
       if (!data.tasks) {
         data.tasks = [
           { id: "task-1", title: "Revisar arquivos PDF do Cliente Ricardo", description: "Verificar se as fontes estão embutidas e as cores em CMYK", column: "todo", priority: "alta", assignedTo: "Alex Santos", dueDate: "2026-07-15", createdAt: new Date().toISOString() },
@@ -30,6 +31,89 @@ function loadDB() {
           { id: "task-3", title: "Calibrar cromia digital", description: "Ajustar cabeçotes de impressão", column: "in_progress", priority: "media", assignedTo: "Alex Santos", dueDate: "2026-07-10", createdAt: new Date().toISOString() },
           { id: "task-4", title: "Faturar ordem de serviço", description: "Emitir NF-e e enviar link de pagamento", column: "done", priority: "baixa", assignedTo: "Alex Santos", dueDate: "2026-07-09", createdAt: new Date().toISOString() }
         ];
+        changed = true;
+      }
+      if (!data.products) {
+        data.products = [
+          {
+            id: "PRD-001",
+            name: "Cartão de Visita Couché 300g",
+            category: "Impressão Digital",
+            basePrice: 45.00,
+            baseProductionDays: 3,
+            printColors: ["4x0", "4x4"],
+            sizes: [
+              { name: "9x5cm", priceAdjustment: 0 },
+              { name: "8.5x5.5cm", priceAdjustment: 5 }
+            ],
+            finishes: [
+              { name: "Verniz U.V. Total Frente", price: 10, additionalDays: 0, conflictsWith: ["Laminação Fosca BOPP"] },
+              { name: "Laminação Fosca BOPP", price: 15, additionalDays: 1, conflictsWith: ["Verniz U.V. Total Frente"] },
+              { name: "Verniz Localizado", price: 25, additionalDays: 2, conflictsWith: ["Verniz U.V. Total Frente"] },
+              { name: "Borda Arredondada", price: 8, additionalDays: 1 }
+            ]
+          },
+          {
+            id: "PRD-002",
+            name: "Panfleto / Flyer Couché 115g",
+            category: "Impressão Offset",
+            basePrice: 120.00,
+            baseProductionDays: 5,
+            printColors: ["4x0", "4x4", "1x0", "1x1"],
+            sizes: [
+              { name: "A5 (14x21cm)", priceAdjustment: 0 },
+              { name: "A4 (21x29.7cm)", priceAdjustment: 60 },
+              { name: "A6 (10x14cm)", priceAdjustment: -30 }
+            ],
+            finishes: [
+              { name: "Corte Reto", price: 0, additionalDays: 0 },
+              { name: "Dobra Central", price: 15, additionalDays: 1 },
+              { name: "Refile Especial", price: 10, additionalDays: 1 }
+            ]
+          },
+          {
+            id: "PRD-003",
+            name: "Banner Lona Semibrilho 440g",
+            category: "Grandes Formatos / Lonas",
+            basePrice: 65.00,
+            baseProductionDays: 2,
+            printColors: ["4x0"],
+            sizes: [
+              { name: "1m² (100x100cm)", priceAdjustment: 0 },
+              { name: "2m² (100x200cm)", priceAdjustment: 50 },
+              { name: "0.5m² (50x100cm)", priceAdjustment: -20 }
+            ],
+            finishes: [
+              { name: "Bastão e Cordão (Pendurar)", price: 12, additionalDays: 0 },
+              { name: "Ilhós nos 4 cantos", price: 8, additionalDays: 0 },
+              { name: "Bainha de Reforço", price: 10, additionalDays: 1 }
+            ]
+          },
+          {
+            id: "PRD-004",
+            name: "Camiseta de Algodão Personalizada",
+            category: "Corte Laser / Comunicação Visual",
+            basePrice: 39.90,
+            baseProductionDays: 7,
+            printColors: ["1x0", "4x0", "4x4"],
+            sizes: [
+              { name: "Tamanho Único", priceAdjustment: 0 },
+              { name: "P", priceAdjustment: 0 },
+              { name: "M", priceAdjustment: 0 },
+              { name: "G", priceAdjustment: 5 },
+              { name: "GG", priceAdjustment: 10 },
+              { name: "Infantil 2 anos", priceAdjustment: -5 }
+            ],
+            finishes: [
+              { name: "Estampa Silk Screen", price: 0, additionalDays: 0 },
+              { name: "Bordado Computadorizado", price: 15, additionalDays: 2 },
+              { name: "Etiqueta Personalizada", price: 3, additionalDays: 1 }
+            ]
+          }
+        ];
+        changed = true;
+      }
+      if (changed) {
         fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), "utf-8");
       }
       return data;
@@ -667,6 +751,32 @@ app.delete("/api/stock/:id", (req, res) => {
   res.json({ success: true });
 });
 
+// PRODUCTS CRUD
+app.get("/api/products", (req, res) => {
+  const db = loadDB();
+  res.json(db.products || []);
+});
+
+app.post("/api/products", (req, res) => {
+  const productData = req.body;
+  const db = loadDB();
+  const id = "PRD-" + String((db.products || []).length + 1).padStart(3, '0');
+  const newProduct = {
+    id,
+    name: productData.name,
+    category: productData.category || "Impressão Digital",
+    basePrice: Number(productData.basePrice || 0),
+    baseProductionDays: Number(productData.baseProductionDays || 1),
+    printColors: productData.printColors || [],
+    sizes: productData.sizes || [],
+    finishes: productData.finishes || []
+  };
+  db.products = db.products || [];
+  db.products.push(newProduct);
+  saveDB(db);
+  res.json(newProduct);
+});
+
 // QUOTATIONS CRUD
 app.get("/api/quotations", (req, res) => {
   const db = loadDB();
@@ -686,7 +796,16 @@ app.post("/api/quotations", (req, res) => {
     expiryDate: data.expiryDate || new Date(Date.now() + 15*24*60*60*1000).toLocaleDateString("pt-BR"),
     totalValue: Number(data.totalValue || 0),
     status: data.status || "PENDENTE",
-    items: data.items || []
+    items: data.items || [],
+    clientPhone: data.clientPhone || "",
+    clientDocument: data.clientDocument || "",
+    deliveryType: data.deliveryType || "retirada",
+    deliveryAddress: data.deliveryAddress || "",
+    deliveryFee: Number(data.deliveryFee || 0),
+    urgencyLevel: data.urgencyLevel || "normal",
+    urgencyFee: Number(data.urgencyFee || 0),
+    productionDays: Number(data.productionDays || 5),
+    paymentMethod: data.paymentMethod || ""
   };
 
   db.quotations.unshift(newQuote);
@@ -719,7 +838,7 @@ app.put("/api/quotations/:id", (req, res) => {
         price: q.totalValue,
         statusOS: "aguardando",
         paymentStatus: "pendente",
-        notes: "Gerado automaticamente a partir do Orçamento " + q.id,
+        notes: "Gerado automaticamente a partir do Orçamento " + q.id + " | Pagamento: " + (updateData.paymentMethod || "Pix"),
         files: []
       };
       db.orders = db.orders || [];
@@ -735,7 +854,7 @@ app.put("/api/quotations/:id", (req, res) => {
         dueDate: new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString("pt-BR"),
         amount: q.totalValue,
         status: "RASCUNHO",
-        paymentMethod: "Boleto Bancário"
+        paymentMethod: updateData.paymentMethod || "Pix"
       };
       db.invoices.unshift(newInv);
     }
